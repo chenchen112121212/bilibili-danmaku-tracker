@@ -1,8 +1,9 @@
 let allDanmaku = {}
 
-const DOM_MENU_MAIN = ".player-auxiliary-context-menu-container"
-const DOM_MENU_BANGUMI = ".bpx-player-contextmenu.bpx-player-active"
-const DOM_MENU_CHEESE = ".bpx-player-contextmenu.bpx-player-active"
+const DOM_MENU_MAIN = ".bpx-player-contextmenu.bpx-player-active";
+const DOM_MENU_BANGUMI = ".bpx-player-contextmenu.bpx-player-active";
+const DOM_MENU_CHEESE = ".bpx-player-contextmenu.bpx-player-active";
+const DOM_DANMAKU_BOX = "#bpx-player-dm-wrap"; // 新版弹幕容器
 
 
 function formatSeconds(value) {
@@ -52,4 +53,24 @@ function toSecond(e) {
 function getStrMiddle(str, before, after) {
 	let m = str.match(new RegExp(before + '(.*?)' + after));
 	return m ? m[1] : false;
+}
+
+function showTip(message, type = "info") {
+  let tipDom = document.createElement("div");
+  tipDom.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    color: white;
+    z-index: 9999;
+    font-size: 14px;
+    background: ${type === "error" ? "#f56c6c" : "#67c23a"};
+  `;
+  tipDom.innerText = message;
+  document.body.appendChild(tipDom);
+  setTimeout(() => {
+    tipDom.remove();
+  }, 3000);
 }
