@@ -31,11 +31,36 @@ function build() {
   fs.writeFileSync("./dist/index.js", template);
 
   let header = "";
-  header = fs.readFileSync("./src/main.js", "utf8").split("// ==/UserScript==")[0];
-  header += "// ==/UserScript==\r\n";
+  // 修复：UserScript 头提取逻辑（更健壮，避免拆分失败）
+  const mainContent = fs.readFileSync("./src/main.js", "utf8");
+  const headerMatch = mainContent.match(/\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==/);
+  if (headerMatch) {
+    header = headerMatch[0] + "\r\n";
+  } else {
+    // 兜底：未找到头信息时给出提示，避免打包出错
+    console.warn("未找到 UserScript 头信息，打包后的脚本可能无法被油猴识别");
+    header = "// ==UserScript==\r\n// @name 未知脚本\r\n// ==/UserScript==\r\n";
+  }
 
-  const result = uglifyjs.minify(template);
+  // 核心修改：优化 uglifyjs 压缩配置（保留油猴API、保留控制台日志）
+  const result = uglifyjs.minify(template, {
+    compress: {
+      drop_console: false, // 不删除控制台日志（方便调试弹幕解析问题）
+      warnings: false // 关闭压缩警告，避免冗余输出
+    },
+    mangle: {
+      reserved: ["unsafeWindow", "GM_xmlhttpRequest"] // 保留油猴核心API，不被混淆
+    }
+  });
+
+  // 新增：压缩失败捕获（避免脚本崩溃）
+  if (result.error) {
+    console.error("脚本压缩失败：", result.error);
+    return;
+  }
+
   fs.writeFileSync("./dist/index.user.js", header + result.code);
+  console.log("打包成功！已生成 dist/index.js 和 dist/index.user.js");
 }
 
 build();
