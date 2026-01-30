@@ -97,9 +97,26 @@ function make_crc32_cracker() {
         crack: crack
     };
 }
+// 替换原有 uhash2uid 函数（支持11位B站UID、增加入参校验、结果去重）
+function uhash2uid(uidhash, max_digit = 11) { // 关键：max_digit 默认值改为11（B站UID已升级到11位）
+  // 新增：入参合法性校验，避免无效哈希导致解密崩溃
+  if (!uidhash || isNaN(parseInt(uidhash, 16))) {
+    return [];
+  }
+  let _crc32_cracker = _crc32_cracker || make_crc32_cracker();
+  let results = _crc32_cracker.crack(parseInt(uidhash, 16), max_digit);
+  // 新增：结果去重+排序，避免重复UID
+  return [...new Set(results)].sort((a, b) => a - b);
+}
 
-function uhash2uid(uidhash, max_digit = 10) {
-    let _crc32_cracker = null;
-    _crc32_cracker = _crc32_cracker || make_crc32_cracker();
-    return _crc32_cracker.crack(parseInt(uidhash, 16), max_digit);
+// 新增：批量解密 midHash 函数（放在文件末尾，方便后续批量处理弹幕发布者）
+async function batchDecryptMidHash(midHashList) {
+  let uidList = [];
+  for (let hash of midHashList) {
+    let uids = uhash2uid(hash);
+    if (uids.length > 0) {
+      uidList = uidList.concat(uids);
+    }
+  }
+  return uidList;
 }
