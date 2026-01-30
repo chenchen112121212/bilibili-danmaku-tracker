@@ -25,17 +25,27 @@ function getVideoCid_Cheese() {
 }
 
 function getVideoCid_Main() {
-    let cidMap = unsafeWindow.__INITIAL_STATE__.cidMap;
-    let keys = Object.keys(cidMap);
-    if (keys.length > 0) {
-        let cids = cidMap[keys[0]].cids;
-        let cidsKeys = Object.keys(cids);
-        if (cidsKeys.length > 0) {
-            return String(cids[cidsKeys[0]]);
-        } else {
-            return "";
+  // 方案1：优先从新版B站全局变量获取（最稳定）
+  if (unsafeWindow.__INITIAL_STATE__?.videoData?.cid) {
+    return String(unsafeWindow.__INITIAL_STATE__.videoData.cid);
+  }
+  // 方案2：从URL参数直接获取
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("cid")) {
+    return urlParams.get("cid");
+  }
+  // 方案3：API兜底（如果前两种失败，调用B站接口获取）
+  const bvid = window.location.pathname.match(/video\/(BV\w+)/)?.[1];
+  if (bvid) {
+    fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.data?.cid) {
+          videoCid = String(data.data.cid);
+          // 获取到CID后，重新触发弹幕获取（避免遗漏）
+          collectAllDanmaku(1);
         }
-    } else {
-        return "";
-    }
+      });
+  }
+  return "";
 }
